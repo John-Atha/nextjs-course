@@ -12,13 +12,13 @@ const InvoiceSchema = z.object({
   date: z.string(),
 });
 
-const CreateInvoiceFormSchema = InvoiceSchema.omit({
+const InvoiceFormSchema = InvoiceSchema.omit({
   id: true,
   date: true,
 });
 
 export async function createInvoice(formData: FormData) {
-  const { customerId, amount, status } = CreateInvoiceFormSchema.parse({
+  const { customerId, amount, status } = InvoiceFormSchema.parse({
     customerId: formData.get('customerId'),
     amount: formData.get('amount'),
     status: formData.get('status'),
@@ -33,6 +33,25 @@ export async function createInvoice(formData: FormData) {
   await sql`
     INSERT INTO invoices (customer_id, amount, status, date)
     VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
+  `;
+
+  revalidatePath('/dashboard/invoices');
+  redirect('/dashboard/invoices');
+}
+
+export async function updateInvoice(id: string, formData: FormData) {
+  const { customerId, amount, status } = InvoiceFormSchema.parse({
+    customerId: formData.get('customerId'),
+    amount: formData.get('amount'),
+    status: formData.get('status'),
+  });
+
+  const amountInCents = amount * 100;
+
+  await sql`
+    UPDATE invoices
+    SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
+    WHERE id = ${id}
   `;
 
   revalidatePath('/dashboard/invoices');
