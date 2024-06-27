@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { sql } from '@vercel/postgres';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { signIn } from '@/auth';
+import { AuthError } from 'next-auth';
 
 export type State = {
   message?: string | null;
@@ -110,4 +112,28 @@ export async function deleteInvoice(id: string) {
     return { message: 'Database Error: Failed to delete invoice.' };
   }
   revalidatePath('/dashboard/invoices');
+}
+
+export async function authenticate(
+  prevState: string | undefined,
+  formData: FormData,
+) {
+  console.log(formData);
+  try {
+    await signIn('credentials', formData);
+  } catch (error) {
+    console.log('caught an error...');
+    console.log({ isAuthError: error instanceof AuthError });
+    if (error instanceof AuthError) {
+      console.log(error.type);
+      switch (error.type) {
+        case 'CredentialsSignin':
+          return 'Invalid credentials.';
+        default:
+          return 'Something went wrong.';
+      }
+    }
+    console.log('THROWING...');
+    throw error;
+  }
 }
